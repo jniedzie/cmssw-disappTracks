@@ -1,2 +1,8 @@
 *.pyc
 *__init__.py
+error/*
+output/*
+log/*
+scripts/*
+tmp/*
+jniedzie.cc
