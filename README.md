@@ -16,7 +16,7 @@ cd CMSSW_9_4_6_patch1
 cmsenv
 ```
 
-* Clone this repoIn CMSSW source directory _CMSSW_9_4_6_patch1/src_ (dot at the end important!):
+* Clone this repo into CMSSW source directory _CMSSW_9_4_6_patch1/src_ (dot at the end important!):
 
 ```
 git clone git@github.com:jniedzie/cmssw-disappTracks.git .
