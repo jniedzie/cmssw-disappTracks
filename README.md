@@ -12,7 +12,7 @@ This repo contains additions to CMSSW for the disappearing tracks analysis:
 
 ```
 cmsrel CMSSW_9_4_6_patch1
-cd CMSSW_9_4_6_patch1
+cd CMSSW_9_4_6_patch1/src
 cmsenv
 ```
 
