@@ -46,26 +46,19 @@
 #include "DataFormats/SiStripDetId/interface/SiStripDetId.h"
 
 #include "SimDataFormats/Track/interface/SimTrack.h"
+#include "SimDataFormats/Track/interface/CoreSimTrack.h"
 #include "SimDataFormats/TrackingHit/interface/PSimHit.h"
 #include "SimDataFormats/TrackingAnalysis/interface/TrackingParticle.h"
-#include "SimDataFormats/Track/interface/CoreSimTrack.h"
 
 #include "SimTracker/TrackerHitAssociation/interface/TrackerHitAssociator.h"
 
 #include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"
+#include "Geometry/TrackerGeometryBuilder/interface/PixelGeomDetUnit.h"
+#include "Geometry/TrackerGeometryBuilder/interface/StripGeomDetUnit.h"
 #include "Geometry/Records/interface/TrackerDigiGeometryRecord.h"
 #include "Geometry/CommonDetUnit/interface/GeomDet.h"
 #include "Geometry/CommonDetUnit/interface/GeomDetEnumerators.h"
-#include "Geometry/TrackerGeometryBuilder/interface/PixelGeomDetUnit.h"
-#include "Geometry/TrackerGeometryBuilder/interface/StripGeomDetUnit.h"
 #include "Geometry/CommonTopologies/interface/PixelTopology.h"
-
-
-// If the analyzer does not use TFileService, please remove
-// the template argument to the base class so the class inherits
-// from  edm::one::EDAnalyzer<> and also remove the line from
-// constructor "usesResource("TFileService");"
-// This will improve performance in multithreaded jobs.
 
 using namespace reco;
 using namespace std;
@@ -167,17 +160,33 @@ private:
   vector<double> stripCluster_x;
   vector<double> stripCluster_y;
   vector<double> stripCluster_z;
+  vector<double> stripCluster_ex;
+  vector<double> stripCluster_ey;
+  vector<double> stripCluster_ez;
   vector<double> stripCluster_charge;
   vector<double> stripCluster_subDet;
+  
+  vector<double> pionCluster_x;
+  vector<double> pionCluster_y;
+  vector<double> pionCluster_z;
+  vector<double> pionCluster_ex;
+  vector<double> pionCluster_ey;
+  vector<double> pionCluster_ez;
+  vector<double> pionCluster_charge;
+  vector<double> pionCluster_subDet;
   
   uint lumi;
   uint run;
   unsigned long long event;
   
   bool verbose;
+  
+  TrackerHitAssociator::Config trackerHitAssociatorConfig;
+  TrackerHitAssociator *trackerHitAssociator;
+  vector<uint> pionTrackIDs;
 };
 
-CharginoAnalyzer::CharginoAnalyzer(const edm::ParameterSet& iConfig) :
+CharginoAnalyzer::CharginoAnalyzer(const ParameterSet& iConfig) :
 genParticlesToken(consumes<vector<GenParticle>>(InputTag("genParticles"))),
 simTracksToken(consumes<vector<SimTrack>>(InputTag("g4SimHits"))),
 simHitsPixelHighToken(consumes<vector<PSimHit>>(InputTag("g4SimHits", "TrackerHitsPixelBarrelHighTof"))),
@@ -195,9 +204,10 @@ simHitsTOBlowToken(consumes<vector<PSimHit>>(InputTag("g4SimHits", "TrackerHitsT
 trackingRecHitsToken(consumes<OwnVector<TrackingRecHit,ClonePolicy<TrackingRecHit>>>(InputTag("generalTracks"))),
 recTracksToken(consumes<vector<Track>>(InputTag("generalTracks"))),
 trackingParticlesToken(consumes<vector<TrackingParticle>>(InputTag("mix", "MergedTrackTruth"))),
-pixelClusterToken(consumes<edmNew::DetSetVector<SiPixelCluster>>(edm::InputTag("siPixelClusters"))),
-stripClusterToken(consumes<edmNew::DetSetVector<SiStripCluster>>(edm::InputTag("siStripClusters"))),
-generalTracksToken(consumes<std::vector<reco::Track>>(edm::InputTag("generalTracks")))
+pixelClusterToken(consumes<edmNew::DetSetVector<SiPixelCluster>>(InputTag("siPixelClusters"))),
+stripClusterToken(consumes<edmNew::DetSetVector<SiStripCluster>>(InputTag("siStripClusters"))),
+generalTracksToken(consumes<std::vector<reco::Track>>(InputTag("generalTracks"))),
+  trackerHitAssociatorConfig( iConfig.getParameter<ParameterSet>("ClusterRefiner"), consumesCollector() )
 {
   verbose = false;
   
@@ -230,8 +240,20 @@ generalTracksToken(consumes<std::vector<reco::Track>>(edm::InputTag("generalTrac
   outputTree->Branch("stripCluster_x", &stripCluster_x);
   outputTree->Branch("stripCluster_y", &stripCluster_y);
   outputTree->Branch("stripCluster_z", &stripCluster_z);
+  outputTree->Branch("stripCluster_ex", &stripCluster_ex);
+  outputTree->Branch("stripCluster_ey", &stripCluster_ey);
+  outputTree->Branch("stripCluster_ez", &stripCluster_ez);
   outputTree->Branch("stripCluster_charge", &stripCluster_charge);
   outputTree->Branch("stripCluster_subDet", &stripCluster_subDet);
+  
+  outputTree->Branch("pionCluster_x", &pionCluster_x);
+  outputTree->Branch("pionCluster_y", &pionCluster_y);
+  outputTree->Branch("pionCluster_z", &pionCluster_z);
+  outputTree->Branch("pionCluster_ex", &pionCluster_ex);
+  outputTree->Branch("pionCluster_ey", &pionCluster_ey);
+  outputTree->Branch("pionCluster_ez", &pionCluster_ez);
+  outputTree->Branch("pionCluster_charge", &pionCluster_charge);
+  outputTree->Branch("pionCluster_subDet", &pionCluster_subDet);
   
   outputTree->Branch("runNumber", &run);
   outputTree->Branch("lumiBlock", &lumi);
@@ -434,6 +456,7 @@ void CharginoAnalyzer::PrintTrackingParticles()
             bool isChargino = false;
             
             FillSimHitsForTrack(trackID, isPion, isChargino);
+            pionTrackIDs.push_back(trackID);
           }
           
           break;
@@ -475,15 +498,50 @@ void CharginoAnalyzer::FillTrackerClusters(bool filterTrackClusters)
     
     for(auto cluster = clusterSet->begin(); cluster != clusterSet->end(); cluster++){
       
-      LocalPoint localPoint = stripTopology->localPosition(cluster->barycenter());
+      LocalPoint localPoint   = stripTopology->localPosition(cluster->barycenter());
       GlobalPoint globalPoint = detUnit->surface().toGlobal(localPoint);
       GeomDetEnumerators::SubDetector subDet = detUnit->specificType().subDetector();
+      
+      double stripLength = stripTopology->localStripLength(localPoint);
+      LocalError localError = LocalError(pow(stripTopology->localPitch(localPoint), 2)/12,
+                                         0,
+                                         pow(stripTopology->localPitch(localPoint), 2)/12);
       
       stripCluster_x.push_back(globalPoint.x());
       stripCluster_y.push_back(globalPoint.y());
       stripCluster_z.push_back(globalPoint.z());
+      stripCluster_ex.push_back(sqrt(localError.xx()));
+      stripCluster_ey.push_back(sqrt(localError.yy()));
+      stripCluster_ez.push_back(stripLength/2.);
       stripCluster_charge.push_back(cluster->charge());
       stripCluster_subDet.push_back((int)subDet);
+      
+      vector<SimHitIdpr> simtrackid;
+      vector<PSimHit> simhit;
+      
+      trackerHitAssociator->associateCluster(cluster, detId, simtrackid, simhit);
+      
+      for(auto stripSimTrackId : simtrackid){
+        bool found = false;
+        for(auto pionTrackID : pionTrackIDs){
+          if(stripSimTrackId.first == pionTrackID){
+            found = true;
+            break;
+          }
+        }
+        if(found){
+          pionCluster_x.push_back(globalPoint.x());
+          pionCluster_y.push_back(globalPoint.y());
+          pionCluster_z.push_back(globalPoint.z());
+          pionCluster_ex.push_back(sqrt(localError.xx()));
+          pionCluster_ey.push_back(sqrt(localError.yy()));
+          pionCluster_ez.push_back(stripLength/2.);
+          pionCluster_charge.push_back(cluster->charge());
+          pionCluster_subDet.push_back((int)subDet);
+          
+          break;
+        }
+      }
     }
   }
   
@@ -533,22 +591,41 @@ void CharginoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
   pion_py.clear();
   pion_pz.clear();
   pion_charge.clear();
+  
   pion_simHits_x.clear();
   pion_simHits_y.clear();
   pion_simHits_z.clear();
   pion_simHits_subDet.clear();
+  
   chargino_simHits_x.clear();
   chargino_simHits_y.clear();
   chargino_simHits_z.clear();
   chargino_simHits_subDet.clear();
+  
   pixelCluster_x.clear();
   pixelCluster_y.clear();
   pixelCluster_z.clear();
   pixelCluster_charge.clear();
+  pixelCluster_subDet.clear();
+  
   stripCluster_x.clear();
   stripCluster_y.clear();
   stripCluster_z.clear();
+  stripCluster_ex.clear();
+  stripCluster_ey.clear();
+  stripCluster_ez.clear();
   stripCluster_charge.clear();
+  stripCluster_subDet.clear();
+  
+  pionCluster_x.clear();
+  pionCluster_y.clear();
+  pionCluster_z.clear();
+  pionCluster_ex.clear();
+  pionCluster_ey.clear();
+  pionCluster_ez.clear();
+  pionCluster_charge.clear();
+  pionCluster_subDet.clear();
+  
   
   if(verbose){
     cout<<"\n\n================================================================="<<endl;
@@ -578,6 +655,8 @@ void CharginoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
   iEvent.getByToken(stripClusterToken, stripClustersHandle);
   
   iSetup.get<TrackerDigiGeometryRecord>().get(trackerGeometry);
+  
+  trackerHitAssociator = new TrackerHitAssociator(iEvent, trackerHitAssociatorConfig);
   
   // pion id:       211
   // chargino id:   1000024

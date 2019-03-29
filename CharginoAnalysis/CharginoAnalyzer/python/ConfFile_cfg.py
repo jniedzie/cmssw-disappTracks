@@ -3,6 +3,9 @@ import FWCore.ParameterSet.Config as cms
 process = cms.Process("CharginoAnalyzer")
 
 process.load("FWCore.MessageService.MessageLogger_cfi")
+process.load("CharginoAnalysis.CharginoAnalyzer.CfiFile_cfi")
+
+from CharginoAnalysis.CharginoAnalyzer.CfiFile_cfi import *
 
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
 
@@ -16,9 +19,9 @@ process.source = cms.Source("PoolSource",
 )
 
 process.TFileService = cms.Service("TFileService",
-                                   fileName = cms.string("/afs/cern.ch/work/j/jniedzie/private/charginoAnalysisPions.root"))
+                                   fileName = cms.string("/afs/cern.ch/work/j/jniedzie/private/disapp_tracks/tree_friend.root"))
 
-process.load("CharginoAnalysis.CharginoAnalyzer.CfiFile_cfi")
+
 process.load("Configuration.StandardSequences.GeometryDB_cff")
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
 from Configuration.AlCa.GlobalTag import GlobalTag
