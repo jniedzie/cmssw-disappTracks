@@ -30,6 +30,8 @@ scram build
 
 2. **Events generation: GEN-SIM step**
 
+* Chargino events will be generated applying a MET filter of 200 GeV. Therefore, be prepared to get ~5% of the number of events specified in the command below.
+
 * Run this scripts with proper arguments and go get a coffee (a big one if you scheduled many jobs):
 
 ```
