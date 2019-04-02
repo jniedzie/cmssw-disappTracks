@@ -84,6 +84,9 @@ EOM
         --no_exec \
         -n ${number_of_events_per_job}
 
+        # change lumi block number to the current job iter
+        sed -i "s/process.source = cms.Source(\"EmptySource\").*/process.source = cms.Source(\"EmptySource\",firstLuminosityBlock = cms.untracked.uint32($iJob))/" scripts/chargino300GeV_ctau10cm_GEN-SIM_${iJob}.py
+
         # create script that will be run by HTCondor
         FILE2="scripts/run_GEN-SIM_${iJob}.sh"
 
@@ -112,6 +115,7 @@ EOM
 
         # submit the job
         condor_submit scripts/run_batch_${iJob}.sub
+
     elif [ "$run_step" = "GEN-SIM-RAW" ]; then
         echo "Running GEN-SIM-RAW step"
         # Create HTCondor config file
