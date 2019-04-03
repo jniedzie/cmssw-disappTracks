@@ -63,6 +63,7 @@ output      = output/GEN-SIM.\$(ClusterId).\$(ProcId).out
 error       = error/GEN-SIM.\$(ClusterId).\$(ProcId).err
 log         = log/GEN-SIM.\$(ClusterId).log
 transfer_input_files   = scripts/chargino300GeV_ctau10cm_GEN-SIM_${iJob}.py
+requirements = (OpSysAndVer =?= "SLCern6")
 +JobFlavour     = "nextweek"
 queue
 EOM
@@ -129,6 +130,7 @@ output      = output/GEN-SIM.\$(ClusterId).\$(ProcId).out
 error       = error/GEN-SIM.\$(ClusterId).\$(ProcId).err
 log         = log/GEN-SIM.\$(ClusterId).log
 transfer_input_files   = scripts/chargino300GeV_ctau10cm_GEN-SIM-RAW_${iJob}.py
+requirements = (OpSysAndVer =?= "SLCern6")
 +JobFlavour     = "nextweek"
 queue
 EOM
