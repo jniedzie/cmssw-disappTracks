@@ -148,7 +148,7 @@ EOM
         --eventcontent RAWSIM \
         --era Run2_2017 \
         --filein file:$input_path/chargino300GeV_ctau10cm_GEN-SIM_${iJob}.root \
-        --fileout file:tmp/chargino300GeV_ctau10cm_GEN-SIM-RAW_${iJob}.root \
+        --fileout file:chargino300GeV_ctau10cm_GEN-SIM-RAW_${iJob}.root \
         --python_filename scripts/chargino300GeV_ctau10cm_GEN-SIM-RAW_${iJob}.py \
         --customise Configuration/DataProcessing/Utils.addMonitoring,SimG4Core/CustomPhysics/GenPlusSimParticles_cfi.customizeProduce,SimG4Core/CustomPhysics/GenPlusSimParticles_cfi.customizeKeep \
         --customise_commands 'process.RAWSIMEventContent.outputCommands.extend(["keep *_trackingParticleRecoTrackAsssociation_*_*", "keep StripDigiSimLinkedmDetSetVector_simSiStripDigis_*_*"])' \
@@ -211,9 +211,9 @@ EOM
       --conditions 94X_mc2017_realistic_v14 \
       --eventcontent AODSIM \
       --era Run2_2017 \
-      --filein file:chargino300GeV_ctau10cm_GEN-SIM-RAW.root \
-      --fileout file:chargino300GeV_ctau10cm_GEN-SIM-RAW-RECO.root \
-      --python_filename chargino300GeV_ctau10cm_GEN-SIM-RAW-RECO.py \
+      --filein file:$input_path/chargino300GeV_ctau10cm_GEN-SIM-RAW_${iJob}.root \
+      --fileout file:chargino300GeV_ctau10cm_GEN-SIM-RAW-RECO_${iJob}.root \
+      --python_filename scripts/chargino300GeV_ctau10cm_GEN-SIM-RAW-RECO_${iJob}.py \
       --customise Configuration/DataProcessing/Utils.addMonitoring,SimG4Core/CustomPhysics/GenPlusSimParticles_cfi.customizeProduce,SimG4Core/CustomPhysics/GenPlusSimParticles_cfi.customizeKeep \
       --customise_commands 'process.AODSIMEventContent.outputCommands.extend(["keep *_siPixelClusters_*_*", "keep *_siStripClusters_*_*", "keep *_dedxHitInfo_*_*", "keep recoTrackExtras_generalTracks_*_*", "keep TrackingRecHitsOwned_generalTracks_*_*", "keep *_trackingParticleRecoTrackAsssociation_*_*"])' \
       -n -1 \
@@ -276,9 +276,9 @@ EOM
       --eventcontent MINIAODSIM \
       --era Run2_2017 \
       --mc \
-      --filein file:chargino300GeV_ctau10cm_GEN-SIM-RAW-RECO.root \
-      --fileout file:chargino300GeV_ctau10cm_miniAOD.root \
-      --python_filename chargino300GeV_ctau10cm_miniAOD.py \
+      --filein file:$input_path/chargino300GeV_ctau10cm_GEN-SIM-RAW-RECO_${iJob}.root \
+      --fileout file:chargino300GeV_ctau10cm_miniAOD_${iJob}.root \
+      --python_filename scripts/chargino300GeV_ctau10cm_miniAOD_${iJob}.py \
       --customise Configuration/DataProcessing/Utils.addMonitoring,SimG4Core/CustomPhysics/GenPlusSimParticles_cfi.customizeProduce,SimG4Core/CustomPhysics/GenPlusSimParticles_cfi.customizeKeep \
       --customise_commands 'process.MINIAODSIMEventContent.outputCommands.extend(["keep *_dedxHitInfo_*_*", "keep recoTrackExtras_generalTracks_*_*", "keep *_isolatedTracks_*_*", "keep recoGenParticles_prunedGenParticles_*_*"])' \
       -n -1 \
@@ -313,7 +313,7 @@ EOM
 #----------------------------------------------------------------------------------------
 
       # submit the job
-      condor_submit scripts/run_batch_GEN-SIM-RAW-RECO_${iJob}.sub
+      condor_submit scripts/run_batch_miniAOD_${iJob}.sub
 
     else
       echo "Unknown step passed: ${run_step}"
