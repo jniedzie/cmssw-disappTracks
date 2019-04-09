@@ -46,7 +46,7 @@ scram build
 
 * If everything goes fine, after many hours you should see files like `chargino300GeV_ctau10cm_GEN-SIM_0.root` containing generated events in the output directory specified.
 
-4. **Events processing: GEN-SIM-RAW step**
+4. **Events processing: GEN-SIM-RAW, GEN-SIM-RAW-RECO and miniAOD steps**
 
 * Once GEN-SIM events are ready, you can run next step using the same script, but this time specifying input path. No need to specify number of events anymore - all events in the file will be processed:
 
@@ -57,6 +57,8 @@ scram build
 -i /eos/cms/store/group/something/something_else/susy/GEN-SIM/ \
 -o /eos/cms/store/group/something/something_else/susy/GEN-SIM-RAW/
 ```
+
+In order to perform further steps, just replace GEN-SIM-RAW with GEN-SIM-RAW-RECO or miniAOD (and remember to update input and output paths).
 
 5. **Some random info that may be useful**
 
