@@ -1,0 +1,10 @@
+Universe              = vanilla
+executable            = run_extractor.sh
+arguments             = $(ProcId)
+GetEnv                = True
+output                = output/$(ClusterId).$(ProcId).out
+error                 = error/$(ClusterId).$(ProcId).err
+log                   = log/$(ClusterId).log
+requirements 	      = (OpSysAndVer =?= "SLCern6")
++JobFlavour           = "espresso"
+queue 201

@@ -60,6 +60,10 @@
 #include "Geometry/CommonDetUnit/interface/GeomDetEnumerators.h"
 #include "Geometry/CommonTopologies/interface/PixelTopology.h"
 
+#include "RecoLocalTracker/SiPixelRecHits/interface/PixelCPEBase.h"
+#include "RecoLocalTracker/Records/interface/TkPixelCPERecord.h"
+#include "RecoLocalTracker/ClusterParameterEstimator/interface/PixelClusterParameterEstimator.h"
+
 using namespace reco;
 using namespace std;
 using namespace edm;
@@ -141,14 +145,23 @@ private:
   vector<double> pion_simHits_x;
   vector<double> pion_simHits_y;
   vector<double> pion_simHits_z;
+  vector<double> pion_simHits_t;
   vector<int> pion_simHits_subDet;
   vector<int> pion_charge;
   
   // GEN-SIM level chargino information
-  vector<double> chargino_simHits_x;
-  vector<double> chargino_simHits_y;
-  vector<double> chargino_simHits_z;
-  vector<int> chargino_simHits_subDet;
+  vector<double>  chargino_eta;
+  vector<double>  chargino_phi;
+  vector<double>  chargino_pt;
+  vector<double>  chargino_px;
+  vector<double>  chargino_py;
+  vector<double>  chargino_pz;
+  vector<int>     chargino_charge;
+  vector<int>     chargino_nTrackerLayers;
+  vector<double>  chargino_simHits_x;
+  vector<double>  chargino_simHits_y;
+  vector<double>  chargino_simHits_z;
+  vector<int>     chargino_simHits_subDet;
   
   // Tracker clusters not assigned to any track
   vector<double> pixelCluster_x;
@@ -180,10 +193,16 @@ private:
   unsigned long long event;
   
   bool verbose;
+  int nCharginoHits;
   
   TrackerHitAssociator::Config trackerHitAssociatorConfig;
   TrackerHitAssociator *trackerHitAssociator;
   vector<uint> pionTrackIDs;
+  
+  const ParameterSet config;
+  const PixelCPEBase* cpe;
+  
+  void TestClusters(edm::Handle<edmNew::DetSetVector<SiPixelCluster>> inputhandle, edm::ESHandle<TrackerGeometry> & geom);
 };
 
 CharginoAnalyzer::CharginoAnalyzer(const ParameterSet& iConfig) :
@@ -207,7 +226,8 @@ trackingParticlesToken(consumes<vector<TrackingParticle>>(InputTag("mix", "Merge
 pixelClusterToken(consumes<edmNew::DetSetVector<SiPixelCluster>>(InputTag("siPixelClusters"))),
 stripClusterToken(consumes<edmNew::DetSetVector<SiStripCluster>>(InputTag("siStripClusters"))),
 generalTracksToken(consumes<std::vector<reco::Track>>(InputTag("generalTracks"))),
-  trackerHitAssociatorConfig( iConfig.getParameter<ParameterSet>("ClusterRefiner"), consumesCollector() )
+trackerHitAssociatorConfig( iConfig.getParameter<ParameterSet>("ClusterRefiner"), consumesCollector()),
+config(iConfig)
 {
   verbose = false;
   
@@ -224,8 +244,17 @@ generalTracksToken(consumes<std::vector<reco::Track>>(InputTag("generalTracks"))
   outputTree->Branch("pion_simHits_x", &pion_simHits_x);
   outputTree->Branch("pion_simHits_y", &pion_simHits_y);
   outputTree->Branch("pion_simHits_z", &pion_simHits_z);
+  outputTree->Branch("pion_simHits_t", &pion_simHits_t);
   outputTree->Branch("pion_simHits_subDet", &pion_simHits_subDet);
   
+  outputTree->Branch("chargino_eta", &chargino_eta);
+  outputTree->Branch("chargino_phi", &chargino_phi);
+  outputTree->Branch("chargino_pt", &chargino_pt);
+  outputTree->Branch("chargino_px", &chargino_px);
+  outputTree->Branch("chargino_py", &chargino_py);
+  outputTree->Branch("chargino_pz", &chargino_pz);
+  outputTree->Branch("chargino_charge", &chargino_charge);
+  outputTree->Branch("chargino_nTrackerLayers", &chargino_nTrackerLayers);
   outputTree->Branch("chargino_simHits_x", &chargino_simHits_x);
   outputTree->Branch("chargino_simHits_y", &chargino_simHits_y);
   outputTree->Branch("chargino_simHits_z", &chargino_simHits_z);
@@ -290,6 +319,7 @@ void CharginoAnalyzer::FillHitsForTrackID(const PSimHit &hit, uint trackID, bool
     pion_simHits_x.push_back(globalPoint.x());
     pion_simHits_y.push_back(globalPoint.y());
     pion_simHits_z.push_back(globalPoint.z());
+    pion_simHits_t.push_back(hit.timeOfFlight());
     pion_simHits_subDet.push_back((int)subDet);
   }
   if(isChargino){
@@ -297,6 +327,7 @@ void CharginoAnalyzer::FillHitsForTrackID(const PSimHit &hit, uint trackID, bool
     chargino_simHits_y.push_back(globalPoint.y());
     chargino_simHits_z.push_back(globalPoint.z());
     chargino_simHits_subDet.push_back((int)subDet);
+    nCharginoHits++;
   }
 }
 
@@ -391,8 +422,10 @@ void CharginoAnalyzer::PrintTrackingParticles()
     const TrackingParticle *particle = &(*trackingParticles)[i];
     
     if(abs(particle->pdgId()) == 1000022 || abs(particle->pdgId()) == 1000024){
-      cout<<"Tracking particle "<<i<<endl;
-      print(particle);
+      if(verbose){
+        cout<<"Tracking particle "<<i<<endl;
+        print(particle);
+      }
       
       // Save decay vertices of charginos
       const TrackingVertexRefVector &verticesRef = particle->decayVertices();
@@ -413,14 +446,34 @@ void CharginoAnalyzer::PrintTrackingParticles()
         bool isPion = false;
         bool isChargino = true;
         
+        nCharginoHits = 0;
         FillSimHitsForTrack(trackID, isPion, isChargino);
+        
+        double eta = track.momentum().eta();
+        double phi = track.momentum().phi();
+        double pt = track.momentum().Pt();
+        double px = track.momentum().Px();
+        double py = track.momentum().Py();
+        double pz = track.momentum().Pz();
+        int charge = track.charge();
+        
+        chargino_eta.push_back(eta);
+        chargino_phi.push_back(phi);
+        chargino_pt.push_back(pt);
+        chargino_px.push_back(px);
+        chargino_py.push_back(py);
+        chargino_pz.push_back(pz);
+        chargino_nTrackerLayers.push_back(nCharginoHits);
+        chargino_charge.push_back(charge);
       }
     }
   }
   
-  cout<<"\n\n chargino decay vertices:"<<endl;
-  for(auto v : charginoDecayVertices){
-    cout<<v[0]<<"\t"<<v[1]<<"\t"<<v[2]<<endl;
+  if(verbose){
+    cout<<"\n\n chargino decay vertices:"<<endl;
+    for(auto v : charginoDecayVertices){
+      cout<<v[0]<<"\t"<<v[1]<<"\t"<<v[2]<<endl;
+    }
   }
   
   //------------------------------------------------------
@@ -435,8 +488,10 @@ void CharginoAnalyzer::PrintTrackingParticles()
            particle->vy() == v[1] &&
            particle->vz() == v[2] ){
           
-          cout<<"Tracking particle "<<i<<endl;
-          print(particle);
+          if(verbose){
+            cout<<"Tracking particle "<<i<<endl;
+            print(particle);
+          }
           
           pion_vx.push_back(particle->vx());
           pion_vy.push_back(particle->vy());
@@ -556,6 +611,10 @@ void CharginoAnalyzer::FillTrackerClusters(bool filterTrackClusters)
     
     auto detUnit = dynamic_cast<const PixelGeomDetUnit*>(trackerGeometry->idToDet(detId));
     auto pixelTopology = dynamic_cast<const PixelTopology*>(&(detUnit->specificTopology()));
+    //
+    const GeomDetUnit *genericDet = trackerGeometry->idToDetUnit(detId);
+    auto pixDet = dynamic_cast<const PixelGeomDetUnit*>(genericDet);
+    //
     
     for(auto cluster = clusterSet->begin(); cluster != clusterSet->end(); cluster++){
       
@@ -568,8 +627,92 @@ void CharginoAnalyzer::FillTrackerClusters(bool filterTrackClusters)
       pixelCluster_z.push_back(globalPoint.z());
       pixelCluster_charge.push_back(cluster->charge());
       pixelCluster_subDet.push_back((int)subDet);
+    
+      /*
+      //
+      tuple<LocalPoint, LocalError, SiPixelRecHitQuality::QualWordType> tuple = cpe->getParameters(*cluster, *genericDet);
+      LocalPoint lp( std::get<0>(tuple) );
+      LocalError le( std::get<1>(tuple) );
+      SiPixelRecHitQuality::QualWordType rqw( std::get<2>(tuple) );
+      
+      Ref< edmNew::DetSetVector<SiPixelCluster>, SiPixelCluster > clusterRef = edmNew::makeRefTo(pixelClustersHandle, cluster);
+      
+      const SiPixelRecHit *hit = new SiPixelRecHit( lp, le, rqw, *genericDet, clusterRef);
+      if(!hit){
+        cout<<"No pixel rec hit could be created"<<endl;
+        continue;
+      }
+      //
+      
+      vector<SimHitIdpr> simtrackid;
+      trackerHitAssociator->associatePixelRecHit(hit, simtrackid);
+      */
     }
   }
+}
+
+void CharginoAnalyzer::TestClusters(edm::Handle<edmNew::DetSetVector<SiPixelCluster> >  inputhandle,
+                           edm::ESHandle<TrackerGeometry> & geom) {
+  if (!cpe){
+    edm::LogError("SiPixelRecHitConverter") << " at least one CPE is not ready -- can't run!";
+    // TO DO: throw an exception here?  The user may want to know...
+    assert(0);
+    return;   // clusterizer is invalid, bail out
+  }
+  
+//  SiPixelRecHitCollectionNew output;
+  
+  int numberOfDetUnits = 0;
+  int numberOfClusters = 0;
+  
+  const edmNew::DetSetVector<SiPixelCluster>& input = *inputhandle;
+  
+  edmNew::DetSetVector<SiPixelCluster>::const_iterator DSViter=input.begin();
+  
+  for ( ; DSViter != input.end() ; DSViter++) {
+    numberOfDetUnits++;
+    unsigned int detid = DSViter->detId();
+    DetId detIdObject( detid );
+    const GeomDetUnit * genericDet = geom->idToDetUnit( detIdObject );
+    const PixelGeomDetUnit * pixDet = dynamic_cast<const PixelGeomDetUnit*>(genericDet);
+    assert(pixDet);
+//    SiPixelRecHitCollectionNew::FastFiller recHitsOnDetUnit(output,detid);
+    
+    edmNew::DetSet<SiPixelCluster>::const_iterator clustIt = DSViter->begin(), clustEnd = DSViter->end();
+    
+    for ( ; clustIt != clustEnd; clustIt++) {
+      numberOfClusters++;
+      std::tuple<LocalPoint, LocalError,SiPixelRecHitQuality::QualWordType> tuple = cpe->getParameters( *clustIt, *genericDet );
+      LocalPoint lp( std::get<0>(tuple) );
+      LocalError le( std::get<1>(tuple) );
+      SiPixelRecHitQuality::QualWordType rqw( std::get<2>(tuple) );
+      // Create a persistent edm::Ref to the cluster
+      edm::Ref< edmNew::DetSetVector<SiPixelCluster>, SiPixelCluster > cluster = edmNew::makeRefTo( inputhandle, clustIt);
+      // Make a RecHit and add it to the DetSet
+      // old : recHitsOnDetUnit.push_back( new SiPixelRecHit( lp, le, detIdObject, &*clustIt) );
+      SiPixelRecHit *hit = new SiPixelRecHit( lp, le, rqw, *genericDet, cluster);
+      //
+      // Now save it =================
+//      recHitsOnDetUnit.push_back(hit);
+      // =============================
+
+      vector<SimHitIdpr> simtrackid;
+      vector<TrackerHitAssociator::simhitAddr> simhitCFPos;
+      
+      trackerHitAssociator->associatePixelRecHit(hit, simtrackid, &simhitCFPos);
+      
+      std::cout << "SiPixelRecHitConverterVI " << numberOfClusters << ' '<< lp << " " << le << std::endl;
+    } //  <-- End loop on Clusters
+    
+    
+    LogDebug("SiPixelRecHitConverter");
+    std::cout << "SiPixelRecHitConverterVI " << " Found RecHits on " << detid << std::endl;
+    
+    
+  } //    <-- End loop on DetUnits
+  
+  LogDebug ("SiPixelRecHitConverter");
+  std::cout << "SiPixelRecHitConverterVI converted " << numberOfClusters << "SiPixelClusters into SiPixelRecHits, in " << numberOfDetUnits << " DetUnits." << std::endl;
 }
 
 
@@ -577,6 +720,10 @@ void CharginoAnalyzer::FillTrackerClusters(bool filterTrackClusters)
 void CharginoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
   bool filterTrackClusters = true;
+ 
+  ESHandle<PixelClusterParameterEstimator> hCPE;
+  iSetup.get<TkPixelCPERecord>().get(config.getParameter<string>("CPE"), hCPE);
+  cpe = dynamic_cast<const PixelCPEBase*>(&(*hCPE));
   
   run   = iEvent.id().run();
   lumi  = iEvent.id().luminosityBlock();
@@ -595,8 +742,17 @@ void CharginoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
   pion_simHits_x.clear();
   pion_simHits_y.clear();
   pion_simHits_z.clear();
+  pion_simHits_t.clear();
   pion_simHits_subDet.clear();
   
+  chargino_eta.clear();
+  chargino_phi.clear();
+  chargino_pt.clear();
+  chargino_px.clear();
+  chargino_py.clear();
+  chargino_pz.clear();
+  chargino_charge.clear();
+  chargino_nTrackerLayers.clear();
   chargino_simHits_x.clear();
   chargino_simHits_y.clear();
   chargino_simHits_z.clear();
@@ -684,6 +840,8 @@ void CharginoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
    */
   PrintTrackingParticles();
   FillTrackerClusters(filterTrackClusters);
+  
+//  TestClusters(pixelClustersHandle, trackerGeometry);
   
   outputTree->Fill();
 }

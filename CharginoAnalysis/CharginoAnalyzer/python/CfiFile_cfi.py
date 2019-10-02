@@ -16,5 +16,6 @@ CharginoAnalyzer = cms.EDAnalyzer('CharginoAnalyzer',
                                                             associateStrip = cms.bool(True),
                                                             pixelSimLinkSrc = cms.InputTag("simSiPixelDigis"),
                                                             stripSimLinkSrc = cms.InputTag("simSiStripDigis"),
-                                                            )
+                                                            ),
+                                  CPE = cms.string('PixelCPEGeneric'),
                                   )
