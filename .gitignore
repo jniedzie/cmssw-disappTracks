@@ -6,3 +6,6 @@ log/*
 scripts/*
 tmp/*
 jniedzie.cc
+crabFriendTrees/crab.log
+crabFriendTrees/crab_projects/*
+pickEventsSignalWithPU/*
