@@ -20,6 +20,7 @@
 #include <memory>
 #include <string>
 #include <iomanip>
+#include <fstream>
 
 #include <TLorentzVector.h>
 #include <TH1D.h>
@@ -203,29 +204,34 @@ private:
   const PixelCPEBase* cpe;
   
   void TestClusters(edm::Handle<edmNew::DetSetVector<SiPixelCluster>> inputhandle, edm::ESHandle<TrackerGeometry> & geom);
+
+  vector<tuple<uint, uint, unsigned long long>> pickedEvents;
 };
 
 CharginoAnalyzer::CharginoAnalyzer(const ParameterSet& iConfig) :
-genParticlesToken(consumes<vector<GenParticle>>(InputTag("genParticles"))),
-simTracksToken(consumes<vector<SimTrack>>(InputTag("g4SimHits"))),
-simHitsPixelHighToken(consumes<vector<PSimHit>>(InputTag("g4SimHits", "TrackerHitsPixelBarrelHighTof"))),
-simHitsPixelLowToken(consumes<vector<PSimHit>>(InputTag("g4SimHits", "TrackerHitsPixelBarrelLowTof"))),
-simHitsPixelEndcapLowToken(consumes<vector<PSimHit>>(InputTag("g4SimHits", "TrackerHitsPixelEndcapLowTof"))),
-simHitsPixelEndcapHighToken(consumes<vector<PSimHit>>(InputTag("g4SimHits", "TrackerHitsPixelEndcapHighTof"))),
-simHitsTEClowToken(consumes<vector<PSimHit>>(InputTag("g4SimHits", "TrackerHitsTECLowTof"))),
-simHitsTEChighToken(consumes<vector<PSimHit>>(InputTag("g4SimHits", "TrackerHitsTECHighTof"))),
-simHitsTIBlowToken(consumes<vector<PSimHit>>(InputTag("g4SimHits", "TrackerHitsTIBLowTof"))),
-simHitsTIBhighToken(consumes<vector<PSimHit>>(InputTag("g4SimHits", "TrackerHitsTIBHighTof"))),
-simHitsTIDlowToken(consumes<vector<PSimHit>>(InputTag("g4SimHits", "TrackerHitsTIDLowTof"))),
-simHitsTIDhighToken(consumes<vector<PSimHit>>(InputTag("g4SimHits", "TrackerHitsTIDHighTof"))),
-simHitsTOBhighToken(consumes<vector<PSimHit>>(InputTag("g4SimHits", "TrackerHitsTOBHighTof"))),
-simHitsTOBlowToken(consumes<vector<PSimHit>>(InputTag("g4SimHits", "TrackerHitsTOBLowTof"))),
-trackingRecHitsToken(consumes<OwnVector<TrackingRecHit,ClonePolicy<TrackingRecHit>>>(InputTag("generalTracks"))),
-recTracksToken(consumes<vector<Track>>(InputTag("generalTracks"))),
-trackingParticlesToken(consumes<vector<TrackingParticle>>(InputTag("mix", "MergedTrackTruth"))),
-pixelClusterToken(consumes<edmNew::DetSetVector<SiPixelCluster>>(InputTag("siPixelClusters"))),
-stripClusterToken(consumes<edmNew::DetSetVector<SiStripCluster>>(InputTag("siStripClusters"))),
-generalTracksToken(consumes<std::vector<reco::Track>>(InputTag("generalTracks"))),
+
+genParticlesToken(            consumes<vector<GenParticle>>(InputTag("genParticles"))),
+simTracksToken(               consumes<vector<SimTrack>>(   InputTag("g4SimHits"))),
+simHitsPixelHighToken(        consumes<vector<PSimHit>>(    InputTag("g4SimHits", "TrackerHitsPixelBarrelHighTof"))),
+simHitsPixelLowToken(         consumes<vector<PSimHit>>(    InputTag("g4SimHits", "TrackerHitsPixelBarrelLowTof"))),
+simHitsPixelEndcapLowToken(   consumes<vector<PSimHit>>(    InputTag("g4SimHits", "TrackerHitsPixelEndcapLowTof"))),
+simHitsPixelEndcapHighToken(  consumes<vector<PSimHit>>(	  InputTag("g4SimHits", "TrackerHitsPixelEndcapHighTof"))),
+simHitsTEClowToken(           consumes<vector<PSimHit>>(    InputTag("g4SimHits", "TrackerHitsTECLowTof"))),
+simHitsTEChighToken(          consumes<vector<PSimHit>>(    InputTag("g4SimHits", "TrackerHitsTECHighTof"))),
+simHitsTIBlowToken(           consumes<vector<PSimHit>>(    InputTag("g4SimHits", "TrackerHitsTIBLowTof"))),
+simHitsTIBhighToken(          consumes<vector<PSimHit>>(    InputTag("g4SimHits", "TrackerHitsTIBHighTof"))),
+simHitsTIDlowToken(           consumes<vector<PSimHit>>(    InputTag("g4SimHits", "TrackerHitsTIDLowTof"))),
+simHitsTIDhighToken(          consumes<vector<PSimHit>>(    InputTag("g4SimHits", "TrackerHitsTIDHighTof"))),
+simHitsTOBhighToken(          consumes<vector<PSimHit>>(    InputTag("g4SimHits", "TrackerHitsTOBHighTof"))),
+simHitsTOBlowToken(           consumes<vector<PSimHit>>(    InputTag("g4SimHits", "TrackerHitsTOBLowTof"))),
+
+trackingRecHitsToken(         consumes<OwnVector<TrackingRecHit,ClonePolicy<TrackingRecHit>>>(InputTag("generalTracks"))),
+recTracksToken(               consumes<vector<Track>>(InputTag("generalTracks"))),
+trackingParticlesToken(       consumes<vector<TrackingParticle>>(InputTag("mix", "MergedTrackTruth"))),
+pixelClusterToken(            consumes<edmNew::DetSetVector<SiPixelCluster>>(InputTag("siPixelClusters"))),
+stripClusterToken(            consumes<edmNew::DetSetVector<SiStripCluster>>(InputTag("siStripClusters"))),
+generalTracksToken(           consumes<std::vector<reco::Track>>(InputTag("generalTracks"))),
+
 trackerHitAssociatorConfig( iConfig.getParameter<ParameterSet>("ClusterRefiner"), consumesCollector()),
 config(iConfig)
 {
@@ -287,6 +293,22 @@ config(iConfig)
   outputTree->Branch("runNumber", &run);
   outputTree->Branch("lumiBlock", &lumi);
   outputTree->Branch("eventNumber", &event);
+  
+  
+  ifstream infile("/afs/cern.ch/work/j/jniedzie/private/disapp_tracks/friendTreeProducer/survivingSignalEventsAfterL1_all_500_10.txt");
+
+  uint l, r;
+  unsigned long long e;
+  char junk;
+  
+  cout<<"Loading picked event numbers from file"<<endl;
+  
+//  cout<<infile.rdbuf()<<endl;
+  
+  while(infile >> r >> junk >> l >> junk >> e){
+//    cout<<"run: "<<run<<"\tlumi: "<<lumi<<"\tevent: "<<event<<endl;
+    pickedEvents.push_back({r, l, e});
+  }
 }
 
 CharginoAnalyzer::~CharginoAnalyzer()
@@ -729,6 +751,13 @@ void CharginoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
   lumi  = iEvent.id().luminosityBlock();
   event = iEvent.id().event();
   
+  tuple<uint, uint, unsigned long long> eventTuple = {run, lumi, event};
+  
+  if(find(pickedEvents.begin(), pickedEvents.end(), eventTuple) == pickedEvents.end()){
+    cout<<"Event not in the picked events list. Skipping..."<<endl;
+    return;
+  }
+  
   //  if(event!=2331) return;
   
   pion_vx.clear();
@@ -789,26 +818,27 @@ void CharginoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& 
     cout<<"\n"<<endl;
   }
   
-  iEvent.getByToken(genParticlesToken, genParticles);
-  iEvent.getByToken(simTracksToken, simTracks);
-  iEvent.getByToken(simHitsPixelHighToken, simHitsPixelHigh);
-  iEvent.getByToken(simHitsPixelLowToken, simHitsPixelLow);
+  iEvent.getByToken(genParticlesToken,          genParticles);
+  iEvent.getByToken(simTracksToken,             simTracks);
+  iEvent.getByToken(simHitsPixelHighToken,      simHitsPixelHigh);
+  iEvent.getByToken(simHitsPixelLowToken,       simHitsPixelLow);
   iEvent.getByToken(simHitsPixelEndcapLowToken, simHitsPixelEndcapLow);
-  iEvent.getByToken(simHitsPixelEndcapHighToken, simHitsPixelEndcapHigh);
-  iEvent.getByToken(simHitsTEClowToken, simHitsTEClow);
-  iEvent.getByToken(simHitsTEChighToken, simHitsTEChigh);
-  iEvent.getByToken(simHitsTIBlowToken, simHitsTIBlow);
-  iEvent.getByToken(simHitsTIBhighToken, simHitsTIBhigh);
-  iEvent.getByToken(simHitsTIDlowToken, simHitsTIDlow);
-  iEvent.getByToken(simHitsTIDhighToken, simHitsTIDhigh);
-  iEvent.getByToken(simHitsTOBhighToken, simHitsTOBhigh);
-  iEvent.getByToken(simHitsTOBlowToken, simHitsTOBlow);
-  iEvent.getByToken(trackingRecHitsToken, trackingRecHitsRef);
-  iEvent.getByToken(recTracksToken, recTracks);
-  iEvent.getByToken(trackingParticlesToken, trackingParticles);
-  iEvent.getByToken(generalTracksToken, generalTracksHandle);
-  iEvent.getByToken(pixelClusterToken, pixelClustersHandle);
-  iEvent.getByToken(stripClusterToken, stripClustersHandle);
+  iEvent.getByToken(simHitsPixelEndcapHighToken,simHitsPixelEndcapHigh);
+  iEvent.getByToken(simHitsTEClowToken,         simHitsTEClow);
+  iEvent.getByToken(simHitsTEChighToken,        simHitsTEChigh);
+  iEvent.getByToken(simHitsTIBlowToken,         simHitsTIBlow);
+  iEvent.getByToken(simHitsTIBhighToken,        simHitsTIBhigh);
+  iEvent.getByToken(simHitsTIDlowToken,         simHitsTIDlow);
+  iEvent.getByToken(simHitsTIDhighToken, 	      simHitsTIDhigh);
+  iEvent.getByToken(simHitsTOBhighToken,        simHitsTOBhigh);
+  iEvent.getByToken(simHitsTOBlowToken,         simHitsTOBlow);
+  
+  iEvent.getByToken(trackingRecHitsToken,       trackingRecHitsRef);
+  iEvent.getByToken(recTracksToken,             recTracks);
+  iEvent.getByToken(trackingParticlesToken,     trackingParticles);
+  iEvent.getByToken(generalTracksToken,         generalTracksHandle);
+  iEvent.getByToken(pixelClusterToken,          pixelClustersHandle);
+  iEvent.getByToken(stripClusterToken,          stripClustersHandle);
   
   iSetup.get<TrackerDigiGeometryRecord>().get(trackerGeometry);
   

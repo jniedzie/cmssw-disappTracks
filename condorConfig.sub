@@ -7,4 +7,4 @@ error                 = error/$(ClusterId).$(ProcId).err
 log                   = log/$(ClusterId).log
 requirements 	      = (OpSysAndVer =?= "SLCern6")
 +JobFlavour           = "espresso"
-queue 201
+queue 200

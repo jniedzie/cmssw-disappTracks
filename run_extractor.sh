@@ -1,14 +1,14 @@
 #!/bin/bash
 
 # Set those variables:
-config_path=/afs/cern.ch/work/j/jniedzie/private/CMSSW_9_4_6_patch1/src/CharginoAnalysis/CharginoAnalyzer/python/ConfFile_cfg.py
-cmssw_path=/afs/cern.ch/work/j/jniedzie/private/CMSSW_9_4_6_patch1/src
-output_path=/afs/cern.ch/work/j/jniedzie/private/disapp_tracks/pionBackground/friendInfo/
+config_path=/afs/cern.ch/work/j/jniedzie/private/disapp_tracks/friendTreeProducer/CMSSW_10_2_4_patch1/src/CharginoAnalysis/CharginoAnalyzer/python/ConfFile_cfg.py
+cmssw_path=/afs/cern.ch/work/j/jniedzie/private/disapp_tracks/friendTreeProducer/CMSSW_10_2_4_patch1/src
+output_path=/eos/cms/store/group/phys_exotica/xtracks/7Sep2019/Calibrated-SIG-SR-new-2018-Hadded/Wino_500GeV10cm/treeProducerXtracks/friend_trees/
 
 #----------------------------------------------------------------------------
-export XRD_NETWORKSTACK=IPv4
-export CMSSWVER="CMSSW_9_4_6_patch1"
-export SCRAM_ARCH="slc6_amd64_gcc630"
+export XRD_NETWORKSTACK=IPv42
+export CMSSWVER="CMSSW_10_2_4_patch1"
+export SCRAM_ARCH="slc6_amd64_gcc700"
 
 cd $cmssw_path
 cmsenv

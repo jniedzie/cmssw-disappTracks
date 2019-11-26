@@ -7,15 +7,16 @@ config.General.transferOutputs = True
 config.General.transferLogs = True
 
 config.JobType.pluginName = 'Analysis'
-config.JobType.psetName = '/afs/cern.ch/work/j/jniedzie/private/disapp_tracks/friendTreeProducer/CMSSW_9_4_11/src/CharginoAnalysis/CharginoAnalyzer/python/ConfFile_cfg.py'
+config.JobType.psetName = '/afs/cern.ch/work/j/jniedzie/private/disapp_tracks/friendTreeProducer/CMSSW_10_2_4_patch1/src/CharginoAnalysis/CharginoAnalyzer/python/ConfFile_cfg.py'
 
-config.Data.inputDataset = '/WToLNuJets_HT_200_400/jniedzie-crab_pickEvents_miniAOD-18783c0a07109245951450a1a4f55409/USER'
-config.Data.secondaryInputDataset = '/WToLNuJets_HT_200_400/jniedzie-crab_pickEvents_HLTDIGI-424e4485a07f26f554e82f829d793003/USER'
+config.Data.inputDataset = '/MET/jniedzie-crab_pickEvents_MET_2018A_RAW-RECO-e5f6624f5ab7506b38712cf6e55471cc/USER'
+config.Data.secondaryInputDataset = '/MET/jniedzie-crab_pickEvents_MET_2018A_miniAOD-e5f6624f5ab7506b38712cf6e55471cc/USER'
+
+
 config.Data.inputDBS = 'phys03'
 config.Data.splitting = 'FileBased'
 config.Data.unitsPerJob = 10
-config.Data.outLFNDirBase = '/store/group/phys_exotica/xtracks/taggerStudy/friend_info'
-config.Data.publication = False
+config.Data.outLFNDirBase = '/store/group/phys_exotica/xtracks/taggerStudy/pickedEvents/MET_2018A/friendTrees'
 config.Data.outputDatasetTag = 'friendTreesProducer'
 
-config.Site.storageSite = 'T2_CH_CSCS'
+config.Site.storageSite = 'T2_CH_CERN'
