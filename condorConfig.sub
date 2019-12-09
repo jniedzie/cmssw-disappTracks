@@ -5,6 +5,6 @@ GetEnv                = True
 output                = output/$(ClusterId).$(ProcId).out
 error                 = error/$(ClusterId).$(ProcId).err
 log                   = log/$(ClusterId).log
-requirements 	      = (OpSysAndVer =?= "SLCern6")
+requirements 	      = (OpSysAndVer =?= "CentOS7")
 +JobFlavour           = "espresso"
-queue 200
+queue 130

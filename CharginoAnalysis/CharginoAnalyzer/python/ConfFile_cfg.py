@@ -51,12 +51,30 @@ process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
 #                            )
 
 process.source = cms.Source("PoolSource",
-         fileNames = cms.untracked.vstring('root://eoscms.cern.ch///eos/cms/store/group/phys_susy/xtracks/500GeV10cm/GEN-SIM-RAW-RECO-PU/chargino500GeV_ctau10cm_GEN-SIM-RAW-RECO_{}.root'.format(options.fileNumber)),
-         secondaryFileNames=cms.untracked.vstring('root://eoscms.cern.ch///eos/cms/store/group/phys_susy/xtracks/500GeV10cm/GEN-SIM-RAW-PU/chargino500GeV_ctau10cm_GEN-SIM-RAW_{}.root'.format(options.fileNumber))
+         fileNames = cms.untracked.vstring('root://eoscms.cern.ch///eos/cms/store/group/phys_susy/xtracks/300GeV1cm/GEN-SIM-RAW-RECO-PU/chargino300GeV_ctau1cm_GEN-SIM-RAW-RECO_{}.root'.format(options.fileNumber)),
+         secondaryFileNames=cms.untracked.vstring('root://eoscms.cern.ch///eos/cms/store/group/phys_susy/xtracks/300GeV1cm/GEN-SIM-RAW-PU/chargino300GeV_ctau1cm_GEN-SIM-RAW_{}.root'.format(options.fileNumber))
                            )
 
+# process.source = cms.Source("PoolSource",
+#          fileNames = cms.untracked.vstring('root://eoscms.cern.ch//eos/cms/store/group/phys_exotica/xtracks/taggerStudy/pickedEvents/miniAOD-ext/WToLNuJets_HT_200_400_ext/crab_pickEvents_miniAOD-ext/191202_102433/0000/pickevents_{}.root'.format(options.fileNumber)),
+#          secondaryFileNames=cms.untracked.vstring('root://eoscms.cern.ch//eos/cms/store/group/phys_exotica/xtracks/taggerStudy/pickedEvents/RECO-ext/WToLNuJets_HT_200_400_ext/crab_pickEvents_RECO-ext/191202_103647/0000/pickevents_{}.root'.format(options.fileNumber))
+#                            )
+
+# process.source = cms.Source("PoolSource",
+#          fileNames = cms.untracked.vstring('root://eoscms.cern.ch//eos/cms/store/group/phys_exotica/xtracks/private_reco/test.reco.aod.root'),
+#          secondaryFileNames=cms.untracked.vstring('root://eoscms.cern.ch//eos/cms/store/group/phys_exotica/xtracks/private_reco/test.reco.root')
+#                            )
+
 process.TFileService = cms.Service("TFileService",
-                                  fileName = cms.string("/eos/cms/store/group/phys_exotica/xtracks/7Sep2019/Calibrated-SIG-SR-new-2018-Hadded/Wino_500GeV10cm/treeProducerXtracks/friend_trees/chunk_{}/tree_friend.root".format(options.fileNumber)))
+                                  fileName = cms.string("/eos/cms/store/group/phys_exotica/xtracks/7Sep2019/Calibrated-SIG-SR-new-2018-Hadded/Wino_300GeV1cm/treeProducerXtracks/friend_trees/chunk_{}/tree_friend.root".format(options.fileNumber)))
+
+
+# process.TFileService = cms.Service("TFileService",
+#                                   fileName = cms.string("/eos/cms/store/group/phys_exotica/xtracks/7Sep2019/Calibrated-MC-ext-SR-2018-Hadded/WJetsToLNu_HT200to400_special/treeProducerXtracks/friend_trees_noHighPtHits/chunk_{}/tree_friend.root".format(options.fileNumber)))
+
+# process.TFileService = cms.Service("TFileService",
+#                                   fileName = cms.string("/eos/cms/store/group/phys_exotica/xtracks/private_reco/friend_trees_noHighPtHits.root"))
+
 
 # process.TFileService = cms.Service("TFileService",
 #                                   fileName = cms.string("/afs/cern.ch/work/j/jniedzie/private/disapp_tracks/friendTreeProducer/tree_friend.root"))
